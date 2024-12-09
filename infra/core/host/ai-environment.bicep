@@ -94,6 +94,7 @@ output keyVaultName string = hubDependencies.outputs.keyVaultName
 output keyVaultEndpoint string = hubDependencies.outputs.keyVaultEndpoint
 
 // Application Insights
+output applicationInsightsId string = hubDependencies.outputs.applicationInsightsId
 output applicationInsightsName string = hubDependencies.outputs.applicationInsightsName
 output applicationInsightsConnectionString string = hubDependencies.outputs.applicationInsightsConnectionString
 output logAnalyticsWorkspaceName string = hubDependencies.outputs.logAnalyticsWorkspaceName

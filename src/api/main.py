@@ -8,6 +8,11 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from tracing import init_tracing
+from azure.appconfiguration.provider import load
+from featuremanagement import FeatureManager
+from featuremanagement.azuremonitor import publish_telemetry, track_event
+from azure.identity import DefaultAzureCredential
+from azure.monitor.opentelemetry import configure_azure_monitor
 
 from contoso_chat.chat_request import get_response
 
@@ -15,6 +20,18 @@ base = Path(__file__).resolve().parent
 
 load_dotenv()
 tracer = init_tracing()
+
+# Modification: add add config
+configure_azure_monitor(connection_string = os.getenv("APPINSIGHTS_CONNECTIONSTRING"))
+app_config_endpoint = os.getenv("APP_CONFIGURATION_ENDPOINT")
+app_config = load(
+    endpoint=os.getenv("APP_CONFIGURATION_ENDPOINT"),
+    credential=DefaultAzureCredential(),  # can we use azure_credential?
+    feature_flag_enabled=True,
+    feature_flag_refresh_enabled=True,
+    refresh_interval=30,  # 30 seconds
+)
+feature_manager = FeatureManager(app_config, on_feature_evaluated=publish_telemetry)
 
 app = FastAPI()
 
@@ -51,7 +68,7 @@ async def root():
 @app.post("/api/create_response")
 @trace
 def create_response(question: str, customer_id: str, chat_history: str) -> dict:
-    result = get_response(customer_id, question, chat_history)
+    result = get_response(customer_id, question, chat_history, feature_manager)
     return result
 
 # TODO: fix open telemetry so it doesn't slow app so much

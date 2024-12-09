@@ -17,6 +17,23 @@
       "request": "launch",
       "name": "Bash-Debug (simplest configuration)",
       "program": "${file}"
+    },
+    {
+      "name": "FastAPI: Uvicorn",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "main:app", // Replace 'main' with the name of your main Python file and 'app' with the FastAPI instance
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "jinja": true,
+      "cwd": "${workspaceFolder}/src/api",
+      "justMyCode": false
     }
   ]
 }

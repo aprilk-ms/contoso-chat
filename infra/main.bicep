@@ -158,6 +158,18 @@ module ai 'core/host/ai-environment.bicep' = {
   }
 }
 
+// Modification: add app config
+module appConfig 'core/config/appconfig.bicep' = {
+  name: 'appconfig'
+  scope: resourceGroup
+  params: {
+    location: location
+    name: '${prefix}-appconfig'
+    tags: tags
+    appInsightsId: ai.outputs.applicationInsightsId
+  }
+}
+
 module cosmos 'core/database/cosmos/sql/cosmos-sql-db.bicep' = {
   name: 'cosmos'
   scope: resourceGroup
@@ -258,6 +270,16 @@ module appinsightsAccountRole 'core/security/role.bicep' = {
   }
 }
 
+module appconfigAccountRole 'core/security/role.bicep' = {
+  scope: resourceGroup
+  name: 'appconfig-account-reader-role'
+  params: {
+    principalId: managedIdentity.outputs.managedIdentityPrincipalId
+    roleDefinitionId: '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
+    principalType: 'ServicePrincipal'
+  }
+}
+
 module userAiSearchRole 'core/security/role.bicep' = if (!empty(principalId)) {
   scope: resourceGroup
   name: 'user-ai-search-index-data-contributor'
@@ -298,6 +320,16 @@ module userCosmosAccountRole 'core/security/role-cosmos.bicep' = if (!empty(prin
   }
 }
 
+module appconfigRoleUser 'core/security/role.bicep' = if (!empty(principalId)) {
+  scope: resourceGroup
+  name: 'app-config-owner-role-user'
+  params: {
+    principalId: principalId
+    roleDefinitionId: '5ae67dd6-50cb-40e7-96ff-dc2bfa4b606b' // App Configuration Data Owner
+    principalType: principalType
+  }
+}
+
 output AZURE_LOCATION string = location
 output AZURE_RESOURCE_GROUP string = resourceGroup.name
 
@@ -317,6 +349,7 @@ output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerApps.outputs.registry
 output AZURE_CONTAINER_REGISTRY_NAME string = containerApps.outputs.registryName
 
 output APPINSIGHTS_CONNECTIONSTRING string = ai.outputs.applicationInsightsConnectionString
+output APP_CONFIGURATION_ENDPOINT string = appConfig.outputs.endpoint
 
 output OPENAI_TYPE string = 'azure'
 output AZURE_EMBEDDING_NAME string = openAiEmbeddingDeploymentName

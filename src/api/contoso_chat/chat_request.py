@@ -10,7 +10,8 @@ from azure.identity import DefaultAzureCredential
 import prompty
 import prompty.azure
 from prompty.tracer import trace, Tracer, console_tracer, PromptyTracer
-
+from featuremanagement import FeatureManager
+import uuid
 
 # add console and json tracer:
 # this only has to be done once
@@ -36,7 +37,7 @@ def get_customer(customerId: str) -> str:
 
 
 @trace
-def get_response(customerId, question, chat_history):
+def get_response(customerId, question, chat_history, feature_manager):
     print("getting customer...")
     customer = get_customer(customerId)
     print("customer complete")
@@ -44,14 +45,34 @@ def get_response(customerId, question, chat_history):
     print("products complete")
     print("getting result...")
 
+    session_id = str(uuid.uuid4())
+
     model_config = {
         "azure_endpoint": os.environ["AZURE_OPENAI_ENDPOINT"],
-        "api_version": os.environ["AZURE_OPENAI_API_VERSION"],
+        "api_version": os.environ["AZURE_OPENAI_API_VERSION"]
     }
 
+    inputs={"question": question, "customer": customer, "documentation": context}
+
+    # Experiment 1: Override model
+    variant_model = feature_manager.get_variant("model", session_id)
+    if (variant_model is not None):
+        model_config["azure_deployment"] = variant_model.configuration
+
+    # Experiment 2: Override system prompt 
+    variant_prompt = feature_manager.get_variant("system_prompt", session_id)
+    if (variant_prompt is not None):
+        inputs["prompt"] = variant_prompt.configuration
+
+    # Experiment 3: Override prompty file
+    variant_prompty = feature_manager.get_variant("prompty_version", session_id)
+    prompty_file = "chat.prompty"
+    if (variant_prompty is not None):
+        prompty_file = variant_prompty.configuration
+
     result = prompty.execute(
-        "chat.prompty",
-        inputs={"question": question, "customer": customer, "documentation": context},
+        prompty_file,
+        inputs=inputs,
         configuration=model_config,
     )
     return {"question": question, "answer": result, "context": context}
